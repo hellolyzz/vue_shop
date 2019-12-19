@@ -51,7 +51,7 @@
                   size="mini"
                   icon="el-icon-setting"
                   type="warning"
-                  @click="handleEdit(scope.$index, scope.row)"
+                  @click="handleAllot(scope.row)"
                 ></el-button>
               </el-tooltip>
             </template>
@@ -119,13 +119,35 @@
     </el-dialog>
 
     <!-- 提示删除信息 -->
+
+    <!-- 分配角色 -->
+    <el-dialog title="分配角色" :visible.sync="allotDialogVisible" width="30%" @close="allotDialogClosed">
+        <el-form :data="allotForm">
+          <el-form-item label="当前的用户：">{{allotForm.id}}</el-form-item>
+          <el-form-item label="当前的角色：">{{allotForm.role_name}}</el-form-item>
+          <el-form-item label="分配的新角色：">
+            <el-select v-model="selectedRoleId" placeholder="请选择">
+              <el-option
+                v-for="item in roleList"
+                :key="item.id"
+                :label="item.roleName"
+                :value="item.id">
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="allotDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="allotRole">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 // import { async } from 'q'
 export default {
-  data () {
+  data() {
     var checkEmail = (rule, value, callback) => {
       const regEmial = /^([a-zA-Z0-9_-])+@([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-])+/
       if (regEmial.test(value)) {
@@ -147,8 +169,14 @@ export default {
         pagenum: 1, // 当前页码
         pagesize: 2 // 每页显示多少条数据
       },
+      allotForm: {},
+      // 角色列表
+      roleList: [],
+      // 被选中的角色的id
+      selectedRoleId: '',
       userlist: [],
       total: 0,
+      allotDialogVisible: false,
       addDialogVisible: false,
       editDialogVisible: false,
       addForm: {
@@ -193,11 +221,11 @@ export default {
       }
     }
   },
-  created () {
+  created() {
     this.getUserList()
   },
   methods: {
-    async getUserList () {
+    async getUserList() {
       const { data: res } = await this.$http.get('users', {
         params: this.queryInfo
       })
@@ -209,17 +237,17 @@ export default {
       this.total = res.data.total
     },
     // 监听pagesize变化
-    handleSizeChange (newSize) {
+    handleSizeChange(newSize) {
       // console.log(newSize)
       this.queryInfo.pagesize = newSize
       this.getUserList()
     },
     // 监听页码值
-    handleCurrentChange (newPage) {
+    handleCurrentChange(newPage) {
       this.queryInfo.pagenum = newPage
       this.getUserList()
     },
-    async userStateChanged (userInfo) {
+    async userStateChanged(userInfo) {
       // console.log(userInfo)
       const { data: res } = await this.$http.put(
         `users/${userInfo.id}/state/${userInfo.mg_state}`
@@ -230,10 +258,10 @@ export default {
       }
       return this.$message.success('更新用户状态成功')
     },
-    addDialogClosed () {
+    addDialogClosed() {
       this.$refs.addFormRef.resetFields()
     },
-    adduser () {
+    adduser() {
       this.$refs.addFormRef.validate(async valid => {
         // console.log(valid)
         if (!valid) return
@@ -250,7 +278,7 @@ export default {
       })
     },
     // 展示编辑用户的对话框
-    async showEditDialog (id) {
+    async showEditDialog(id) {
       // console.log(data)
       // this.editForm = data
       const { data: res } = await this.$http.get(`users/${id}`)
@@ -262,11 +290,11 @@ export default {
       this.editDialogVisible = true
     },
     // 监听编辑对话框关闭事件
-    editDialogClosed () {
+    editDialogClosed() {
       this.$refs.editFormRef.resetFields()
     },
     // 修改用户信息并提交 预验证
-    editUserInfo () {
+    editUserInfo() {
       this.$refs.editFormRef.validate(async valid => {
         // console.log(valid)
         if (!valid) return // 未通过
@@ -289,14 +317,17 @@ export default {
       })
     },
     // 根据id删除用户
-    async handleDelete (id) {
+    async handleDelete(id) {
       // console.log(id)
-      const confirmRes = await this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-        .catch(err => err)
+      const confirmRes = await this.$confirm(
+        '此操作将永久删除该用户, 是否继续?',
+        '提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).catch(err => err)
       // console.log(confirmRes)
       // 确定 返回confirm文本
       // 取消 返回cancel 前提是要catch捕获错误消息
@@ -310,6 +341,42 @@ export default {
       }
       this.$message.success('删除用户成功')
       this.getUserList()
+    },
+    // 分配角色
+    async handleAllot(role) {
+      // console.log(role)
+      this.allotForm = role
+      // 获取角色列表
+      const { data: res } = await this.$http.get('roles')
+      // console.log(res)
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取角色列表失败')
+      }
+      this.roleList = res.data
+      this.allotDialogVisible = true
+    },
+    allotDialogClosed(){
+      this.selectedRoleId = ''
+      this.allotForm = {}
+    },
+    // 分配角色
+    async allotRole(){
+      // console.log(this.allotForm.id)
+      // console.log(this.selectedRoleId)
+      // 先判断是否更换了目前的角色
+      if(!this.selectedRoleId){
+        return this.$message.info('请选择要分配的角色')
+      }
+      const { data: res } = await this.$http.put(`users/${this.allotForm.id}/role`, {
+        rid: this.selectedRoleId
+      })
+      console.log(res)
+      if (res.meta.status !== 200) {
+        return this.$message.error(res.meta.msg)
+      }
+      this.$message.success('更新角色成功')
+      this.getUserList()
+      this.allotDialogVisible = false
     }
   }
 }
