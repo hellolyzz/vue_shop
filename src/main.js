@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
+// 导入树形table组件
+import TreeTable from 'vue-table-with-tree-grid'
 import './plugins/element.js'
 // 导入全局样式
 import './assets/css/global.css'
@@ -18,6 +20,9 @@ axios.interceptors.request.use(config => {
   return config
 })
 Vue.config.productionTip = false
+
+// 全局注册组件
+Vue.component('tree-table', TreeTable)
 
 new Vue({
   router,

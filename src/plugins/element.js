@@ -27,7 +27,8 @@ import {
   Tag,
   Tree,
   Select,
-  Option
+  Option,
+  Cascader
 } from 'element-ui'
 
 Vue.use(Button)
@@ -56,7 +57,7 @@ Vue.use(Tag)
 Vue.use(Tree)
 Vue.use(Select)
 Vue.use(Option)
-
+Vue.use(Cascader)
 // 弹框组件挂载到vue原型对象上，每个组件都可以使用 this.$message 进行使用
 Vue.prototype.$message = Message
 Vue.prototype.$confirm = MessageBox.confirm
